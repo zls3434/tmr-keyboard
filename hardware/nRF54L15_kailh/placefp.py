@@ -51,6 +51,17 @@ HOLES_H = [
     (309, 55),
 ]
 
+# Rivet holes
+HOLES_R = [(10, -12.5), (38, -12.5), (66.5, -12.5), (95, -12.5), (114, -12.5), (142.5, -12.5),
+           (190, -12.5), (209, -12.5), (237.5, -12.5), (266, -12.5), (294, -12.5),
+           (-2, 12), (-8, 39), (-8, 39), (-10, 63), (-9, 85), (17, 94), (20, 118),
+           (70, 165.5), (-10, 130), (-11.75, 148), (-9.5, 167), (0.5, 177), (17, 178), (42, 178),
+           (59, 177), (71, 142), (49, 117), (45, 91), (75, 93), (95.5, 109), (119, 114),
+           (127, 93), (148, 93), (156.5, 114), (180, 109), (199.5, 93.5), (233, 92), (225.5, 116),
+           (204.5, 142), (205, 165.5), (216, 176.5), (235, 178), (260, 178), (280, 177), (291.5, 165),
+           (292.25, 147), (291, 129), (253, 112), (265, 83), (308.5, 65.5), (311.75, 37), (306, 8),
+    ]
+
 # Dowells
 HOLES_D = [
     (4.55, -4.45),
@@ -319,6 +330,7 @@ def place_mounting_holes(is_pcb):
     for i, (x, y) in enumerate(HOLES_Hs):
         fp = board.FindFootprintByReference(f"Hs{i+1}")
         set_position_mm(fp, x, y)
+
     for i, (x, y) in enumerate(HOLES_H[:8]):
         fp = board.FindFootprintByReference(f"H{i+1}")  # mounting screws for housing
         set_position_mm(fp, x, y)
@@ -335,6 +347,14 @@ def place_mounting_holes(is_pcb):
     holes[14].SetPosition(pcbnew.VECTOR2I(R2.x+mm_to_nm(d), R2.y+mm_to_nm(15.5)))
     holes[15].SetPosition(pcbnew.VECTOR2I(R3.x+mm_to_nm(d), R3.y+mm_to_nm(-d)))
     holes[16].SetPosition(pcbnew.VECTOR2I(R4.x+mm_to_nm(-d), R4.y+mm_to_nm(-d)))
+
+    for i, (x, y) in enumerate(HOLES_D):
+        fp = board.FindFootprintByReference(f"Hd{i+1}")
+        set_position_mm(fp, x, y)
+
+    for i, (x, y) in enumerate(HOLES_R):
+        fp = board.FindFootprintByReference(f"Hr{i+1}")
+        set_position_mm(fp, x, y)
 
 
 def place_components(is_pcb):
@@ -359,7 +379,7 @@ def projname():
 
 
 def main():
-    if projname() not in ["pcb", "swplate", "topcase"]:
+    if projname() not in ["pcb", "swplate", "topcase", "botcase"]:
         print(f"Error: unrecognized project {projname()}")
 
     if projname() == "pcb":
@@ -371,8 +391,9 @@ def main():
         place_switches_and_stabs(False)
         place_components(False)
         place_mounting_holes(False)
-    elif projname() == "topcase":
+    elif projname() in ["topcase", "botcase"]:
         place_switches_and_stabs(False)
+        place_components(False)
         place_mounting_holes(False)
 
     pcbnew.Refresh()

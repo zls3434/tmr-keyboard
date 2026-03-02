@@ -229,6 +229,7 @@ def draw_cutout_plate():
 
     S = switches[62].GetPosition() + rotate(VECTOR2I(0, half + GAP), angle2)
     R = draw_line_arc(down(R, angle2), left(S, angle2), mil(2))
+    R = draw_line(R, S)
 
     # Draw right cutout
     R = switches[69].GetPosition() + VECTOR2I(0, half + GAP)
@@ -260,6 +261,7 @@ def draw_cutout_plate():
 
     S = switches[68].GetPosition() + rotate(VECTOR2I(0, half + GAP), angle2)
     R = draw_line_arc(down(R, angle2), right(S, angle2), mil(2))
+    draw_line(R, S)
 
 
 def draw_wrist():
@@ -424,7 +426,7 @@ def draw_border_bezier(proj=""):
 
     # Segment connecting wrist rest to main body
     S = P
-    C4, C4a = 33.5, 17
+    C4, C4a = 35, 17
     E = VECTOR2I(S.x - mil(7), A.y + offset - reveal)
     S = draw_bezier(*right(S, mil(C4)), *right(E, mil(C4a)))
 
@@ -457,7 +459,7 @@ def draw_border_bezier(proj=""):
     S = draw_bezier(*right(S, Cn), *left(E, Cm))
 
     E = VECTOR2I(switches[5].GetPosition() + VECTOR2I(half, -half-offset-mil(3.5) + reveal))
-    S = draw_bezier(*right(S, Cm), *left(E, Cn + mil(4)))
+    S = draw_bezier(*right(S, Cm), *left(E, Cn))
 
     E = VECTOR2I(switches[8].GetPosition() + VECTOR2I(0, -half-offset+ reveal))
     S = draw_bezier(*right(S, Cn), *left(E, Cm))
@@ -552,8 +554,9 @@ def draw_border_bezier(proj=""):
 
     # Segment connecting wrist rest to main body
     S = P
+    Cr1, Cr2 = 50, 34
     E = switches[71].GetPosition() + VECTOR2I(half - reveal, half+offset - reveal)
-    S = draw_bezier(*left(S, mil(42)), *left(E, mil(44)))
+    S = draw_bezier(*left(S, mil(Cr1)), *left(E, mil(Cr2)))
 
     # Right side wall
     E = switches[72].GetPosition() + VECTOR2I(half+offset - reveal, 0)
@@ -574,11 +577,29 @@ def draw_border_bezier(proj=""):
     E = switches[66].GetPosition() + rotate(VECTOR2I(int(2*half) + offset - reveal, -half), angle2)
     S = draw_bezier(*left(S, mil(C7), angle), *up(E, mil(C8), angle2))
 
+    # cutout for wires
+    if proj == "botcase":
+        def wire_cutout(S):
+            W, L = mil(2), mil(33)
+            E = S + VECTOR2I(W, 0)
+            S = draw_line(S, E)
+            E = S + VECTOR2I(0, L)
+            S = draw_line(S, E)
+            E = S + VECTOR2I(-W, 0)
+            S = draw_line(S, E)
+            E = S + VECTOR2I(0, -L)
+            S = draw_line(S, E)
+        S = S_save = switches[60].GetPosition() + VECTOR2I(0, half+GAP+mil(2))
+        wire_cutout(S)
+        S = S_save = switches[70].GetPosition() + VECTOR2I(-mil(2), half+GAP+mil(2))
+        wire_cutout(S)
 
-def draw_border(ispcb = False, offset=0):
+
+def draw_border(proj, offset=0):
     """Draw border."""
     global LAYER
 
+    ispcb = proj == "pcb"
     if ispcb and offset != 0:
         print("Error: pcb has non-zero offset")
         return
@@ -615,9 +636,14 @@ def draw_border(ispcb = False, offset=0):
         R = draw_line_arc(right(R, angle), right(S, angle2))
 
     angle = angle2
-    S = switches[61].GetPosition() + VECTOR2I(0, half+offset)
-    R = draw_line_arc(left(R, angle), right(S))
 
+    if proj == "topcase" and offset == GAP:
+        S = switches[62].GetPosition() + rotate(VECTOR2I(0, half + GAP), angle2)
+        draw_line(R, S)
+        R = switches[61].GetPosition() + VECTOR2I(0, half+offset)
+    else:
+        S = switches[61].GetPosition() + VECTOR2I(0, half+offset)
+        R = draw_line_arc(left(R, angle), right(S))
 
     S = switches[59].GetPosition() + VECTOR2I(-int(half * 1.25)-offset, 0)
     R = draw_line_arc(left(R), down(S))
@@ -638,8 +664,8 @@ def draw_border(ispcb = False, offset=0):
     R = draw_line_arc(up(R), left(S))
 
     # Draw USB pcb extension
+    USB_WIDTH = mil(11)
     if ispcb:
-        USB_WIDTH = mil(11)
         S = switches[1].GetPosition() + VECTOR2I(-half + mil(4), -half - mil(4.9))
 
         R = draw_line_arc(right(R), down(S))
@@ -650,6 +676,27 @@ def draw_border(ispcb = False, offset=0):
 
         S = switches[2].GetPosition() + VECTOR2I(0, -half)
         R = draw_line_arc(down(R), left(S))
+
+    # draw cutout for pcb extension holding usb receptacle
+    elif proj == "botcase" and offset == GAP:
+        S = switches[1].GetPosition() + VECTOR2I(-half + mil(3.5), -half - mil(5.1))
+
+        R = draw_line_arc(right(R), down(S))
+        R = draw_line(R, S)
+
+        S = R + VECTOR2I(USB_WIDTH + mil(1), 0)
+        R = draw_line(R, S)
+
+        # cutout for ble antenna
+        S = switches[8].GetPosition() + VECTOR2I(0, -half - offset)
+        R = draw_line_arc(down(R), left(S))
+        R = draw_line(R, S)
+        S = S + VECTOR2I(0, -mil(3.5))
+        R = draw_line(R, S)
+        S = R + VECTOR2I(mil(29), 0)
+        R = draw_line(R, S)
+        S = R + VECTOR2I(0, mil(3.5))
+        R = draw_line(R, S)
 
     RLeft = R
 
@@ -687,8 +734,16 @@ def draw_border(ispcb = False, offset=0):
         R = draw_line_arc(left(R, angle), left(S, angle2))
 
     angle = angle2
-    S = switches[70].GetPosition() + VECTOR2I(0, half+offset)
-    R = draw_line_arc(right(R, angle), left(S))
+
+    if proj == "topcase" and offset == GAP:
+        S = switches[68].GetPosition() + rotate(VECTOR2I(0, half + GAP), angle2)
+        draw_line(R, S)
+        R = switches[69].GetPosition() + VECTOR2I(0, half+offset)
+        S = switches[70].GetPosition() + VECTOR2I(0, half+offset)
+        R = draw_line(R, S)
+    else:
+        S = switches[70].GetPosition() + VECTOR2I(0, half+offset)
+        R = draw_line_arc(right(R, angle), left(S))
 
     S = S + VECTOR2I(int(1.25*half)+offset, -half)
     R = draw_line_arc(right(R), down(S))
@@ -729,30 +784,6 @@ def draw_border(ispcb = False, offset=0):
         R = draw_line(R, S)
 
     draw_line(R, RLeft)
-
-
-def draw_slots():
-    def slot(anchor, startx, endx):
-        rad = mil(2.5)
-        rot = lambda X: rotate(X, 45)
-        S = anchor + rot(VECTOR2I(startx, 0))
-        E = anchor + rot(VECTOR2I(endx, 0))
-        draw_line(S, E)
-        S2, E2 = S + rot(VECTOR2I(0, rad+rad)), E + rot(VECTOR2I(0, rad+rad))
-        draw_arc(S, S + rot(VECTOR2I(-rad, rad)), S2)
-        draw_arc(E, E + rot(VECTOR2I(rad, rad)), E2)
-        draw_line(S2, E2)
-
-    A = VECTOR2I(mil(-18), mil(25))
-    dy = lambda n: VECTOR2I(0, mil(math.sqrt(2) * 9 * n))
-    slot(A, mil(94), mil(96))
-    slot(A + dy(1), mil(75), mil(91))
-    slot(A + dy(2), mil(57), mil(86))
-    slot(A + dy(3), mil(53.6), mil(70.5))
-    slot(A + dy(4), mil(52.6), mil(53.5))
-    # slot(A + dy(5), mil(56.6), mil(90))
-    # slot(A + dy(6), mil(60.6), mil(90.5))
-    # slot(A + dy(7), mil(70.6), mil(90.5))
 
 
 def remove_border():
@@ -796,31 +827,38 @@ def save_bezier_curves():
 def main():
     global LAYER
 
-    if projname() not in ["pcb", "swplate", "topcase", "botcase", "cover"]:
+    if projname() not in ["pcb", "swplate", "topcase", "botcase", "botcover"]:
         print(f"Error: unrecognized project {projname()}")
 
     remove_border()
 
     if projname() == "pcb":
-        draw_border(True)
+        draw_border(projname())
     elif projname() == "swplate":
-        draw_border_bezier("swplate")
+        draw_border_bezier(projname())
         draw_wrist_cavity()
-        # draw_slots()
         LAYER = pcbnew.User_6
-        draw_border(ispcb=False, offset=GAP)
-        draw_border(ispcb=False, offset=SIDE_WALL)
+        draw_border(projname(), offset=GAP)
+        draw_border(projname(), offset=SIDE_WALL)
         draw_wrist()
     elif projname() == "topcase":
-        draw_border(ispcb=False, offset=GAP)
-        draw_border_bezier()
-        # draw_border(False)
+        draw_border(projname(), offset=GAP)
+        draw_border_bezier(projname())
+        draw_wrist_cavity()
+        draw_cutout_plate()
         LAYER = pcbnew.User_6
-        draw_border(ispcb=False, offset=SIDE_WALL)
-        # draw_cutout_plate()
+        draw_border(projname(), offset=SIDE_WALL)
+        draw_wrist()
+    elif projname() == "botcase":
+        draw_border(projname(), offset=GAP)
+        draw_border_bezier(projname())
+        draw_wrist_cavity()
+        LAYER = pcbnew.User_6
+        draw_border(projname(), offset=SIDE_WALL)
         draw_wrist()
 
     pcbnew.Refresh()
+    pcbnew.Refresh()  # Bezier curves need Refresh() twice (bug)
 
 
 main()
